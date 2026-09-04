@@ -1,4 +1,11 @@
-export const GRUPOS_MUSCULARES = ['Pecho', 'Espalda', 'Piernas', 'Brazo'] as const
+export const GRUPOS_MUSCULARES = [
+  'Pecho',
+  'Espalda',
+  'Piernas',
+  'Brazo',
+  'Abdomen',
+  'Hombro',
+] as const
 export type GrupoMuscular = (typeof GRUPOS_MUSCULARES)[number]
 
 export const DIAS_SEMANA = [
