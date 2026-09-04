@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ff6b00;
+  --color-primary-dark: #e25e00;
+  --color-primary-light: #fff0e2;
+  --color-success: #58cc02;
+  --color-success-dark: #46a302;
+  --color-success-light: #eaffd6;
+  --color-error: #ff4b4b;
+  --color-error-dark: #e23c3c;
+  --color-error-light: #ffe6e6;
+  --color-info: #1cb0f6;
+  --color-info-light: #dff3ff;
+  --color-ink: #1f1f1f;
+  --color-muted: #777777;
+  --color-line: #e5e5e5;
+  --color-paper: #ffffff;
+  --color-cream: #f7f7f5;
+}
+
+body {
+  margin: 0;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+button {
+  font-family: inherit;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
