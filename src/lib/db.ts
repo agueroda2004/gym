@@ -31,7 +31,7 @@ export type StoreName = (typeof STORE_NAMES)[number]
 
 let dbPromise: Promise<IDBPDatabase<GymDB>> | null = null
 
-function getDB(): Promise<IDBPDatabase<GymDB>> {
+export function getDB(): Promise<IDBPDatabase<GymDB>> {
   if (!dbPromise) {
     dbPromise = openDB<GymDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {

@@ -38,11 +38,13 @@ export function RutinaForm({ open, rutina, initial, onClose, onSubmit }: RutinaF
   const [values, setValues] = useState<RutinaFormValues>({ nombre: '', dias: [] })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [picker, setPicker] = useState<{ diaIndex: number } | null>(null)
+  const [expanded, setExpanded] = useState<Set<DiaSemana>>(new Set())
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setErrors({})
+    setExpanded(new Set())
     if (initial) {
       setValues({
         nombre: initial.nombre,
@@ -64,14 +66,27 @@ export function RutinaForm({ open, rutina, initial, onClose, onSubmit }: RutinaF
   }, [open, initial])
 
   const toggleDia = (dia: DiaSemana) => {
-    setValues((v) => {
-      const exists = v.dias.some((d) => d.diaSemana === dia)
-      return {
-        ...v,
-        dias: exists
-          ? v.dias.filter((d) => d.diaSemana !== dia)
-          : [...v.dias, { diaSemana: dia, ejercicios: [] }],
+    const exists = values.dias.some((d) => d.diaSemana === dia)
+    if (!exists) {
+      setExpanded((prev) => new Set(prev).add(dia))
+    }
+    setValues((v) => ({
+      ...v,
+      dias: exists
+        ? v.dias.filter((d) => d.diaSemana !== dia)
+        : [...v.dias, { diaSemana: dia, ejercicios: [] }],
+    }))
+  }
+
+  const toggleExpand = (dia: DiaSemana) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(dia)) {
+        next.delete(dia)
+      } else {
+        next.add(dia)
       }
+      return next
     })
   }
 
@@ -152,7 +167,23 @@ export function RutinaForm({ open, rutina, initial, onClose, onSubmit }: RutinaF
       await onSubmit(input)
       onClose()
     } catch (e) {
-      if (e instanceof ValidationError) setErrors(e.errors)
+      if (e instanceof ValidationError) {
+        setErrors(e.errors)
+        const diasConError = Object.keys(e.errors)
+          .map((key) => /^dias\[(\d+)\]/.exec(key)?.[1])
+          .map(Number)
+          .filter((n) => !Number.isNaN(n))
+        if (diasConError.length > 0) {
+          setExpanded((prev) => {
+            const next = new Set(prev)
+            for (const idx of diasConError) {
+              const dia = values.dias[idx]
+              if (dia) next.add(dia.diaSemana)
+            }
+            return next
+          })
+        }
+      }
     } finally {
       setSaving(false)
     }
@@ -191,102 +222,123 @@ export function RutinaForm({ open, rutina, initial, onClose, onSubmit }: RutinaF
           )}
         </div>
 
-        {values.dias.map((dia, i) => (
-          <div key={dia.diaSemana} className="rounded-3xl border-2 border-line bg-cream p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-ink">{dia.diaSemana}</h3>
-              <span className="text-xs font-bold text-muted">
-                {dia.ejercicios.length} ejercicio{dia.ejercicios.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {errors[`dias[${i}].ejercicios`] && (
-              <p className="mb-3 text-sm font-semibold text-error">
-                {errors[`dias[${i}].ejercicios`]}
-              </p>
-            )}
-
-            <ul className="space-y-3">
-              {dia.ejercicios.map((ej, j) => {
-                const base = `dias[${i}].ejercicios[${j}]`
-                return (
-                  <li key={`${ej.ejercicioId}-${j}`} className="rounded-2xl border-2 border-line bg-white p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink">
-                        {ej.nombre ?? 'Ejercicio'}
-                      </span>
-                      <button
-                        onClick={() => removeEjercicio(i, j)}
-                        className="rounded-full p-1.5 text-muted transition-colors hover:bg-error-light hover:text-error"
-                        aria-label="Quitar ejercicio"
-                      >
-                        <Icon name="trash" size={16} />
-                      </button>
-                    </div>
-                    {errors[`${base}.ejercicioId`] && (
-                      <p className="mb-2 text-xs font-semibold text-error">
-                        {errors[`${base}.ejercicioId`]}
-                      </p>
-                    )}
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        label="Series"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        value={ej.series}
-                        onChange={(e) => updateEjercicio(i, j, { series: e.target.value })}
-                        error={errors[`${base}.series`]}
-                        className="py-2 text-sm"
-                      />
-                      <Input
-                        label="Repeticiones"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        value={ej.repeticiones}
-                        onChange={(e) => updateEjercicio(i, j, { repeticiones: e.target.value })}
-                        error={errors[`${base}.repeticiones`]}
-                        className="py-2 text-sm"
-                      />
-                      <Input
-                        label="Peso (lbs)"
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.5"
-                        value={ej.peso}
-                        onChange={(e) => updateEjercicio(i, j, { peso: e.target.value })}
-                        error={errors[`${base}.peso`]}
-                        className="py-2 text-sm"
-                      />
-                      <Input
-                        label="Descanso (s)"
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        value={ej.descanso}
-                        onChange={(e) => updateEjercicio(i, j, { descanso: e.target.value })}
-                        error={errors[`${base}.descanso`]}
-                        className="py-2 text-sm"
-                      />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-
-            <Button
-              variant="secondary"
-              full
-              className="mt-3"
-              type="button"
-              onClick={() => setPicker({ diaIndex: i })}
+        {values.dias.map((dia, i) => {
+          const isExpanded = expanded.has(dia.diaSemana)
+          return (
+            <div
+              key={dia.diaSemana}
+              className={`rounded-3xl border-2 p-4 ${
+                isExpanded ? 'border-primary bg-cream' : 'border-line bg-white'
+              }`}
             >
-              Agregar ejercicio
-            </Button>
-          </div>
-        ))}
+              <button
+                type="button"
+                onClick={() => toggleExpand(dia.diaSemana)}
+                className="flex w-full items-center justify-between gap-2"
+              >
+                <h3 className="text-base font-extrabold text-ink">{dia.diaSemana}</h3>
+                <span className="flex items-center gap-2 text-xs font-bold text-muted">
+                  {dia.ejercicios.length} ejercicio{dia.ejercicios.length !== 1 ? 's' : ''}
+                  <Icon
+                    name="chevron-down"
+                    size={18}
+                    className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  />
+                </span>
+              </button>
+
+              {errors[`dias[${i}].ejercicios`] && (
+                <p className="mt-3 text-sm font-semibold text-error">
+                  {errors[`dias[${i}].ejercicios`]}
+                </p>
+              )}
+
+              {isExpanded && (
+                <>
+                  <ul className="mt-3 space-y-3">
+                    {dia.ejercicios.map((ej, j) => {
+                      const base = `dias[${i}].ejercicios[${j}]`
+                      return (
+                        <li key={`${ej.ejercicioId}-${j}`} className="rounded-2xl border-2 border-line bg-white p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <span className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink">
+                              {ej.nombre ?? 'Ejercicio'}
+                            </span>
+                            <button
+                              onClick={() => removeEjercicio(i, j)}
+                              className="rounded-full p-1.5 text-muted transition-colors hover:bg-error-light hover:text-error"
+                              aria-label="Quitar ejercicio"
+                            >
+                              <Icon name="trash" size={16} />
+                            </button>
+                          </div>
+                          {errors[`${base}.ejercicioId`] && (
+                            <p className="mb-2 text-xs font-semibold text-error">
+                              {errors[`${base}.ejercicioId`]}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              label="Series"
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              value={ej.series}
+                              onChange={(e) => updateEjercicio(i, j, { series: e.target.value })}
+                              error={errors[`${base}.series`]}
+                              className="py-2 text-sm"
+                            />
+                            <Input
+                              label="Repeticiones"
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              value={ej.repeticiones}
+                              onChange={(e) => updateEjercicio(i, j, { repeticiones: e.target.value })}
+                              error={errors[`${base}.repeticiones`]}
+                              className="py-2 text-sm"
+                            />
+                            <Input
+                              label="Peso (lbs)"
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.5"
+                              value={ej.peso}
+                              onChange={(e) => updateEjercicio(i, j, { peso: e.target.value })}
+                              error={errors[`${base}.peso`]}
+                              className="py-2 text-sm"
+                            />
+                            <Input
+                              label="Descanso (s)"
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              value={ej.descanso}
+                              onChange={(e) => updateEjercicio(i, j, { descanso: e.target.value })}
+                              error={errors[`${base}.descanso`]}
+                              className="py-2 text-sm"
+                            />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+
+                  <Button
+                    variant="secondary"
+                    full
+                    className="mt-3"
+                    type="button"
+                    onClick={() => setPicker({ diaIndex: i })}
+                  >
+                    Agregar ejercicio
+                  </Button>
+                </>
+              )}
+            </div>
+          )
+        })}
 
         {values.dias.length === 0 && (
           <p className="text-center text-sm font-medium text-muted">

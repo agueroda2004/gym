@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ConfirmSheet } from '../../../components/ui/ConfirmSheet'
 import { Header } from '../../../components/ui/Header'
 import { Icon } from '../../../components/ui/Icons'
+import { exportarDatos, importarDatos, parseBackup, type BackupData } from '../../../lib/backup'
 import { diaDeHoy } from '../../../lib/utils'
 import type { DiaSemana } from '../../../lib/constants'
+import { useNotification } from '../../notifications/hooks/useNotification'
 import { CiclismoForm } from '../../ciclismo/components/CiclismoForm'
 import { useCiclismo } from '../../ciclismo/hooks/useCiclismo'
 import { CorrerForm } from '../../correr/components/CorrerForm'
@@ -15,6 +18,7 @@ import type { PlanDelDia, Sesion } from '../../rutina/types'
 
 function Hoy() {
   const navigate = useNavigate()
+  const notify = useNotification()
   const { rutinas, loading: loadingRutinas } = useRutina()
   const { create: createCiclismo } = useCiclismo()
   const { create: createCorrer } = useCorrer()
@@ -25,6 +29,9 @@ function Hoy() {
   const [starting, setStarting] = useState(false)
   const [cicliOpen, setCicliOpen] = useState(false)
   const [correrOpen, setCorrerOpen] = useState(false)
+  const [pendingImport, setPendingImport] = useState<BackupData | null>(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const activa = rutinas.find((r) => r.activa)
   const hoy = diaDeHoy()
@@ -69,6 +76,50 @@ function Hoy() {
     day: 'numeric',
     month: 'long',
   })
+
+  const handleExportar = async () => {
+    try {
+      const json = await exportarDatos()
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `gym-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      notify.success('Datos exportados')
+    } catch {
+      notify.error('No se pudieron exportar los datos')
+    }
+  }
+
+  const handleArchivoSeleccionado = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const texto = await file.text()
+      setPendingImport(parseBackup(texto))
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : 'El archivo no es un respaldo válido')
+    }
+  }
+
+  const handleImportar = async () => {
+    if (!pendingImport) return
+    setImporting(true)
+    try {
+      await importarDatos(pendingImport)
+      setPendingImport(null)
+      notify.success('Datos importados correctamente')
+      window.location.reload()
+    } catch {
+      setPendingImport(null)
+      notify.error('No se pudieron importar los datos')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   return (
     <div className="px-4 pt-6">
@@ -153,6 +204,30 @@ function Hoy() {
         </div>
       </section>
 
+      <section>
+        <h2 className="mb-3 text-base font-extrabold text-ink">Datos</h2>
+        <div className="rounded-3xl border-2 border-line bg-white p-4">
+          <p className="mb-3 text-sm font-medium text-muted">
+            Exporta o importa toda tu información como respaldo.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button variant="secondary" onClick={() => void handleExportar()}>
+              Exportar
+            </Button>
+            <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
+              Importar
+            </Button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => void handleArchivoSeleccionado(e)}
+          />
+        </div>
+      </section>
+
       <CiclismoForm
         open={cicliOpen}
         onClose={() => setCicliOpen(false)}
@@ -162,6 +237,17 @@ function Hoy() {
         open={correrOpen}
         onClose={() => setCorrerOpen(false)}
         onSubmit={(input) => createCorrer(input)}
+      />
+
+      <ConfirmSheet
+        open={pendingImport !== null}
+        title="Importar datos"
+        message="Esto reemplazará todos los datos actuales de la app con el contenido del archivo. ¿Continuar?"
+        confirmLabel="Reemplazar"
+        danger
+        loading={importing}
+        onConfirm={() => void handleImportar()}
+        onClose={() => setPendingImport(null)}
       />
     </div>
   )
