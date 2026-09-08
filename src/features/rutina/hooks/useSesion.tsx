@@ -10,7 +10,7 @@ import {
   getRutina,
   getSeriesDeSesion,
   getSesion,
-  getUltimoPesoEjercicio,
+  getUltimoRegistroEjercicio,
 } from '../service/Rutina.service'
 import type { PlanEjercicio, Rutina, SerieRegistrada, Sesion } from '../types'
 import type { SerieInput } from '../validators/Rutina.validator'
@@ -20,7 +20,9 @@ export function useSesion(sesionId?: string) {
   const [rutina, setRutina] = useState<Rutina | null>(null)
   const [plan, setPlan] = useState<PlanEjercicio[]>([])
   const [series, setSeries] = useState<SerieRegistrada[]>([])
-  const [lastWeights, setLastWeights] = useState<Record<string, number>>({})
+  const [lastRegistros, setLastRegistros] = useState<
+    Record<string, { peso: number; repeticiones: number }>
+  >({})
   const [loading, setLoading] = useState(true)
   const notify = useNotification()
 
@@ -38,11 +40,12 @@ export function useSesion(sesionId?: string) {
         : null
       setPlan(planDelDia?.ejercicios ?? [])
       setSeries(await getSeriesDeSesion(sesionId))
-      const pesos: Record<string, number> = {}
+      const registros: Record<string, { peso: number; repeticiones: number }> = {}
       for (const p of planDelDia?.ejercicios ?? []) {
-        pesos[p.ejercicioId] = (await getUltimoPesoEjercicio(p.ejercicioId)) ?? 0
+        const ultimo = await getUltimoRegistroEjercicio(p.ejercicioId)
+        if (ultimo) registros[p.ejercicioId] = ultimo
       }
-      setLastWeights(pesos)
+      setLastRegistros(registros)
     } finally {
       setLoading(false)
     }
@@ -82,7 +85,7 @@ export function useSesion(sesionId?: string) {
     rutina,
     plan,
     series,
-    lastWeights,
+    lastRegistros,
     loading,
     addSerie,
     removeSerie,

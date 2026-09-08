@@ -23,6 +23,7 @@ interface EjercicioFormProps {
 export function EjercicioForm({ open, ejercicio, onClose, onSubmit }: EjercicioFormProps) {
   const [nombre, setNombre] = useState('')
   const [grupo, setGrupo] = useState<GrupoMuscular | ''>('')
+  const [urlImagen, setUrlImagen] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
@@ -30,6 +31,7 @@ export function EjercicioForm({ open, ejercicio, onClose, onSubmit }: EjercicioF
     if (open) {
       setNombre(ejercicio?.nombre ?? '')
       setGrupo(ejercicio?.grupoMuscular ?? '')
+      setUrlImagen(ejercicio?.urlImagen ?? '')
       setErrors({})
     }
   }, [open, ejercicio])
@@ -38,7 +40,7 @@ export function EjercicioForm({ open, ejercicio, onClose, onSubmit }: EjercicioF
     setSaving(true)
     setErrors({})
     try {
-      await onSubmit({ nombre, grupoMuscular: grupo as GrupoMuscular })
+      await onSubmit({ nombre, grupoMuscular: grupo as GrupoMuscular, urlImagen })
       onClose()
     } catch (e) {
       if (e instanceof ValidationError) setErrors(e.errors)
@@ -69,6 +71,35 @@ export function EjercicioForm({ open, ejercicio, onClose, onSubmit }: EjercicioF
           options={opciones}
           error={errors.grupoMuscular}
         />
+        <Input
+          label="URL de imagen de ejemplo (opcional)"
+          value={urlImagen}
+          onChange={(e) => setUrlImagen(e.target.value)}
+          error={errors.urlImagen}
+          placeholder="https://ejemplo.com/press-banca.jpg"
+          inputMode="url"
+          autoCapitalize="none"
+        />
+        {urlImagen && (
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-line bg-cream p-3">
+            <img
+              src={urlImagen}
+              alt="Vista previa del ejercicio"
+              className="h-16 w-16 shrink-0 rounded-xl border-2 border-line bg-white object-cover"
+            />
+            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-muted">
+              Vista previa
+            </span>
+            <a
+              href={urlImagen}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 rounded-full border-2 border-line bg-white px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:border-primary hover:text-primary"
+            >
+              Ver
+            </a>
+          </div>
+        )}
         <div className="pt-2">
           <Button full type="button" onClick={() => void submit()} disabled={saving}>
             {ejercicio ? 'Guardar cambios' : 'Crear ejercicio'}

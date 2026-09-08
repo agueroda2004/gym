@@ -4,6 +4,7 @@ export interface Ejercicio {
   id: string
   nombre: string
   grupoMuscular: GrupoMuscular
+  urlImagen?: string
   createdAt: string
   updatedAt: string
 }

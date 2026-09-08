@@ -22,6 +22,7 @@ export async function createEjercicio(input: EjercicioInput): Promise<Ejercicio>
     id: uid(),
     nombre: data.nombre,
     grupoMuscular: data.grupoMuscular,
+    urlImagen: data.urlImagen || undefined,
     createdAt: nowISO(),
     updatedAt: nowISO(),
   }
@@ -40,6 +41,7 @@ export async function updateEjercicio(
     ...existente,
     nombre: data.nombre,
     grupoMuscular: data.grupoMuscular,
+    urlImagen: data.urlImagen || undefined,
     updatedAt: nowISO(),
   }
   await put('ejercicios', ejercicio)

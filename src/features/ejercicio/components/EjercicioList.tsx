@@ -16,6 +16,21 @@ export function EjercicioList({ ejercicios, onEdit, onDelete }: EjercicioListPro
           key={ejercicio.id}
           className="flex items-center gap-3 rounded-3xl border-2 border-line bg-white p-4"
         >
+          {ejercicio.urlImagen && (
+            <a
+              href={ejercicio.urlImagen}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0"
+              aria-label={`Ver ejemplo de ${ejercicio.nombre}`}
+            >
+              <img
+                src={ejercicio.urlImagen}
+                alt=""
+                className="h-12 w-12 rounded-2xl border-2 border-line bg-cream object-cover"
+              />
+            </a>
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-extrabold text-ink">{ejercicio.nombre}</p>
             <div className="mt-1">
@@ -23,6 +38,17 @@ export function EjercicioList({ ejercicios, onEdit, onDelete }: EjercicioListPro
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {ejercicio.urlImagen && (
+              <a
+                href={ejercicio.urlImagen}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full p-2 text-muted transition-colors hover:bg-primary-light hover:text-primary"
+                aria-label={`Ver ejemplo de ${ejercicio.nombre}`}
+              >
+                <Icon name="foto" size={18} />
+              </a>
+            )}
             <button
               onClick={() => onEdit(ejercicio)}
               className="rounded-full p-2 text-muted transition-colors hover:bg-primary-light hover:text-primary"

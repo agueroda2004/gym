@@ -246,7 +246,9 @@ export async function deleteSesion(sesionId: string): Promise<void> {
   await remove('sesiones', sesionId)
 }
 
-export async function getUltimoPesoEjercicio(ejercicioId: string): Promise<number | null> {
+export async function getUltimoRegistroEjercicio(
+  ejercicioId: string,
+): Promise<{ peso: number; repeticiones: number } | null> {
   const todas = await getAll<SerieRegistrada>('seriesRegistradas')
   const series = todas.filter((s) => s.ejercicioId === ejercicioId)
   if (series.length === 0) return null
@@ -263,7 +265,8 @@ export async function getUltimoPesoEjercicio(ejercicioId: string): Promise<numbe
   )
   const sesionMasReciente = conFecha[0].sesionId
   const deEsaSesion = conFecha.filter((s) => s.sesionId === sesionMasReciente)
-  return Math.max(...deEsaSesion.map((s) => s.peso))
+  const mejor = deEsaSesion.reduce((a, b) => (b.peso > a.peso ? b : a))
+  return { peso: mejor.peso, repeticiones: mejor.repeticiones }
 }
 
 export async function getSesionesCompletadas(rutinaId: string): Promise<SesionHistorial[]> {

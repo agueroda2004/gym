@@ -19,7 +19,7 @@ interface EjercicioInputs {
 function Entrenar() {
   const { sesionId } = useParams<{ sesionId: string }>()
   const navigate = useNavigate()
-  const { sesion, rutina, plan, series, lastWeights, loading, addSerie, removeSerie, completar } =
+  const { sesion, rutina, plan, series, lastRegistros, loading, addSerie, removeSerie, completar } =
     useSesion(sesionId)
 
   const [inputs, setInputs] = useState<Record<string, EjercicioInputs>>({})
@@ -43,17 +43,17 @@ function Entrenar() {
     setInputs((prev) => {
       const next = { ...prev }
       for (const p of plan) {
-        const peso = lastWeights[p.ejercicioId]
-        if (peso && !next[p.ejercicioId]?.peso) {
+        const ultimo = lastRegistros[p.ejercicioId]
+        if (ultimo && !next[p.ejercicioId]?.peso) {
           next[p.ejercicioId] = {
-            peso: String(peso),
+            peso: String(ultimo.peso),
             repeticiones: next[p.ejercicioId]?.repeticiones ?? '',
           }
         }
       }
       return next
     })
-  }, [plan, lastWeights])
+  }, [plan, lastRegistros])
 
   if (loading) {
     return (
@@ -111,7 +111,7 @@ function Entrenar() {
 
       <div className="space-y-4">
         {plan.map((p) => {
-          const ultima = lastWeights[p.ejercicioId]
+          const ultima = lastRegistros[p.ejercicioId]
           const deEjercicio = seriesDe(p.ejercicioId)
           return (
             <div key={p.ejercicioId} className="rounded-3xl border-2 border-line bg-white p-4">
@@ -119,15 +119,41 @@ function Entrenar() {
                 <h3 className="min-w-0 flex-1 truncate text-base font-extrabold text-ink">
                   {p.ejercicio.nombre}
                 </h3>
-                <Chip className="pointer-events-none">
-                  {p.ejercicio.grupoMuscular}
-                </Chip>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Chip className="pointer-events-none">{p.ejercicio.grupoMuscular}</Chip>
+                  {p.ejercicio.urlImagen && (
+                    <a
+                      href={p.ejercicio.urlImagen}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border-2 border-line p-1.5 text-muted transition-colors hover:border-primary hover:text-primary"
+                      aria-label={`Ver ejemplo de ${p.ejercicio.nombre}`}
+                    >
+                      <Icon name="foto" size={16} />
+                    </a>
+                  )}
+                </div>
               </div>
-              <p className="mb-3 text-xs font-bold text-primary">
+              <p className="mb-2 text-xs font-bold text-primary">
                 {ultima
-                  ? `Última vez: ${ultima} lbs`
+                  ? `Última vez: ${ultima.peso} lbs × ${ultima.repeticiones} reps`
                   : 'Primera vez: sin peso previo'}
               </p>
+
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-cream px-3 py-1 text-xs font-extrabold text-ink">
+                  <span className="text-muted">Series </span>
+                  {deEjercicio.length} / {p.series}
+                </span>
+                <span className="rounded-full bg-cream px-3 py-1 text-xs font-extrabold text-ink">
+                  <span className="text-muted">Reps </span>
+                  {p.repeticiones}
+                </span>
+                <span className="rounded-full bg-cream px-3 py-1 text-xs font-extrabold text-ink">
+                  <span className="text-muted">Descanso </span>
+                  {p.descanso}s
+                </span>
+              </div>
 
               {deEjercicio.length > 0 && (
                 <ul className="mb-3 space-y-1.5">
